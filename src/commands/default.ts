@@ -33,7 +33,7 @@ const handler = (args: string[]) => {
 			throw { message: `The command ${command} does not exist.` };
 		} else {
 			log.text(figlet.textSync('Fox awesome cli', {}), chalk.keyword('orange').bold);
-			log.text(`\nDocs: ${chalk.blueBright.bold('https://github.com/sergiogc9/fox-awesome-cli')}\n`);
+			log.text(`\nDocs: ${chalk.blueBright.bold('https://github.com/dgmetje1/fox-awesome-cli')}\n`);
 			exec('foxcli --help');
 		}
 	});

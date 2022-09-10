@@ -74,7 +74,7 @@ const handler = (args: CommandArgs) => {
 			? `-${answers.description.toLowerCase().replace(/\s+/g, '_')}`
 			: '';
 		const newBranch = `${answers.branchType}/${answers.issueId || argsIssueId}${branchDescription}`;
-		const sourceBranch = args.from || git.getSourceBranchFromBranch(newBranch);
+		const sourceBranch = args.from || (await git.getSourceBranchFromBranch(newBranch));
 		const currentBranch = git.getCurrentBranch();
 
 		// Check if branch exists
@@ -93,11 +93,12 @@ const handler = (args: CommandArgs) => {
 
 		// If branch is release, merge content from develop
 		if (answers.branchType === 'release') {
-			log.text(`Merging most recent changes from ${git.DEVELOP_BRANCH}...`);
-			if (currentBranch !== git.DEVELOP_BRANCH) {
-				execSilentWithThrow(`git fetch origin ${git.DEVELOP_BRANCH}:${git.DEVELOP_BRANCH}`);
+			const developBranch = git.getGlobalMainBranch('develop');
+			log.text(`Merging most recent changes from ${developBranch}...`);
+			if (currentBranch !== developBranch) {
+				execSilentWithThrow(`git fetch origin ${developBranch}:${developBranch}`);
 			}
-			execSilentWithThrow(`git merge ${git.DEVELOP_BRANCH}`);
+			execSilentWithThrow(`git merge ${developBranch}`);
 		}
 
 		// Push to remote if necessary
