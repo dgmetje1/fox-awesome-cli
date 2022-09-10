@@ -93,7 +93,7 @@ const handler = (args: CommandArgs) => {
 
 		// If branch is release, merge content from develop
 		if (answers.branchType === 'release') {
-			const developBranch = git.getGlobalMainBranch('develop');
+			const developBranch = git.getRepoMainBranch('develop') || git.getGlobalMainBranch('develop');
 			log.text(`Merging most recent changes from ${developBranch}...`);
 			if (currentBranch !== developBranch) {
 				execSilentWithThrow(`git fetch origin ${developBranch}:${developBranch}`);
