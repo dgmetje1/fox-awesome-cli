@@ -2,13 +2,7 @@ import chalk from 'chalk';
 import { Argv } from 'yargs';
 
 import { catchError } from 'lib/error';
-import {
-	checkGitInstallation,
-	DEVELOP_BRANCH,
-	getCurrentBranch,
-	getSourceBranchFromBranch,
-	MASTER_BRANCH
-} from 'lib/git';
+import { checkGitInstallation, getCurrentBranch, getGlobalMainBranch, getSourceBranchFromBranch } from 'lib/git';
 import { execSilentWithThrow } from 'lib/shell';
 import log from 'lib/log';
 
@@ -34,15 +28,15 @@ const config = (yargs: Argv) => {
 };
 
 const handler = (args: CommandArgs) => {
-	catchError(() => {
+	catchError(async () => {
 		checkGitInstallation();
 
 		const currentBranch = getCurrentBranch();
-		if ([MASTER_BRANCH, DEVELOP_BRANCH].includes(currentBranch)) {
+		if ([getGlobalMainBranch('master'), getGlobalMainBranch('develop')].includes(currentBranch)) {
 			return log.warn(`You are in a source branch: ${chalk.bold.underline(currentBranch)}. Doing nothing.`);
 		}
 
-		const sourceBranch = args.from || getSourceBranchFromBranch(currentBranch);
+		const sourceBranch = args.from || (await getSourceBranchFromBranch(currentBranch));
 		log.info('Fetching from remote...');
 		execSilentWithThrow('git fetch');
 		log.info('Checking sync status...');

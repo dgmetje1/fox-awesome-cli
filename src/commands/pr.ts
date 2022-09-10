@@ -37,7 +37,7 @@ const handler = (args: CommandArgs) => {
 		git.checkGitInstallation();
 
 		const currentBranch = git.getCurrentBranch();
-		const targetBranch = args.target || git.getSourceBranchFromBranch(currentBranch);
+		const targetBranch = args.target || (await git.getSourceBranchFromBranch(currentBranch));
 
 		const answer = await inquirer.prompt<{ description: string; title: string }>([
 			{

@@ -46,8 +46,8 @@ jobs:
         run: yarn install --ignore-scripts --frozen-lockfile
       - name: Build
         run: yarn build
-      - name: Execute semantic release
-        run: yarn semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+      # - name: Execute semantic release
+      #   run: yarn semantic-release
+      #   env:
+      #     GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      #     NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

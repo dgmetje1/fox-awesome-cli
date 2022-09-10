@@ -5,7 +5,7 @@ import chalk from 'chalk';
 import configStore from 'lib/config';
 import log from 'lib/log';
 import { catchError } from 'lib/error';
-import { getRepoRemoteUrl } from 'lib/git';
+import { getGlobalMainBranch, getRepoMainBranch, getRepoRemoteUrl } from 'lib/git';
 
 interface CommandArgs {
 	all?: boolean;
@@ -98,7 +98,9 @@ const __removeGitProjectData = async () => {
 };
 
 const __changeGitDefaultBranch = async (branch: string) => {
-	const savedBranch = configStore.get(`git.branch.${branch}`) || branch;
+	const defaultBranchKey = `git.branch.default.${branch}`;
+
+	const savedBranch = configStore.get(defaultBranchKey) || branch;
 	log.text('');
 	log.text(`Your ${branch} branch is ${chalk.blueBright.bold(savedBranch)}`);
 	const questions: QuestionCollection = [
@@ -110,13 +112,37 @@ const __changeGitDefaultBranch = async (branch: string) => {
 		}
 	];
 	const answers = await inquirer.prompt<{ branch: string }>(questions);
-	configStore.set(`git.branch.${branch}`, answers.branch);
+	configStore.set(defaultBranchKey, answers.branch);
 	log.text(`Your ${branch} branch has been set to ${chalk.greenBright.bold(answers.branch)}`);
 };
 
 const __changeGitDefaultBranches = async () => {
 	await __changeGitDefaultBranch('master');
 	await __changeGitDefaultBranch('develop');
+};
+
+const __changeRepoGitDefaultBranch = async (repoUrl: string, branch: MainBranches) => {
+	const savedBranch = getRepoMainBranch(branch) || getGlobalMainBranch(branch);
+	log.text('');
+	log.text(`Your ${branch} branch is ${chalk.blueBright.bold(savedBranch)}`);
+	const questions: QuestionCollection = [
+		{
+			name: 'branch',
+			type: 'input',
+			message: 'Enter the branch you want to use:',
+			default: savedBranch
+		}
+	];
+	const answers = await inquirer.prompt<{ branch: string }>(questions);
+	const repoBranchesConfigKey = `git.branch.repo.${repoUrl.replace(/\.+/g, '\\.')}`;
+	configStore.set(`${repoBranchesConfigKey}.${branch}`, answers.branch);
+	log.text(`Your repo ${branch} branch has been set to ${chalk.greenBright.bold(answers.branch)}`);
+};
+
+const __changeRepoGitDefaultBranches = async () => {
+	const repoUrl = getRepoRemoteUrl();
+	await __changeRepoGitDefaultBranch(repoUrl, 'master');
+	await __changeRepoGitDefaultBranch(repoUrl, 'develop');
 };
 
 const handler = (args: CommandArgs) => {
@@ -148,6 +174,7 @@ const handler = (args: CommandArgs) => {
 						name: 'Change git default branches',
 						value: 'changeGitBranches'
 					},
+					{ name: "Change current repo's git default branches", value: 'changeRepoGitBranches' },
 					{
 						name: 'Remove git provider personal data (token, username, etc)',
 						value: 'removeGitProvider'
@@ -160,13 +187,21 @@ const handler = (args: CommandArgs) => {
 			}
 		];
 		const answers = await inquirer.prompt<{
-			option: 'all' | 'clear' | 'path' | 'removeGitProvider' | 'removeGitProject' | 'changeGitBranches';
+			option:
+				| 'all'
+				| 'clear'
+				| 'path'
+				| 'removeGitProvider'
+				| 'removeGitProject'
+				| 'changeGitBranches'
+				| 'changeRepoGitBranches';
 		}>(questions);
 
 		if (answers.option === 'path') return __showPath();
 		if (answers.option === 'all') return __getAllData();
 		if (answers.option === 'clear') return __clearData();
 		if (answers.option === 'changeGitBranches') return __changeGitDefaultBranches();
+		if (answers.option === 'changeRepoGitBranches') return __changeRepoGitDefaultBranches();
 		if (answers.option === 'removeGitProvider') return __removeGitProviderData();
 		if (answers.option === 'removeGitProject') return __removeGitProjectData();
 	});

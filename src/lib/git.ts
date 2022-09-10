@@ -8,8 +8,10 @@ import GithubProvider from 'providers/git/github';
 import AzureProvider from 'providers/git/azure';
 import BitbucketProvider from 'providers/git/bitbucket';
 
-export const MASTER_BRANCH = configStore.get('git.branch.master') || 'master';
-export const DEVELOP_BRANCH = configStore.get('git.branch.develop') || 'develop';
+export const MAIN_DEFAULT_BRANCHES: Record<MainBranches, string> = {
+	master: 'master',
+	develop: 'develop'
+};
 
 export const checkGitInstallation = () => {
 	const { code } = execSilent('git --version');
@@ -28,11 +30,6 @@ export const getRepoRemoteUrl = () => {
 	const { code, stdout } = execSilent('git config --get remote.origin.url');
 	if (code) throw { message: 'You are not in a git project' };
 	return stdout;
-};
-
-export const getSourceBranchFromBranch = (branch: string) => {
-	if (branch === DEVELOP_BRANCH || /^(hotfix|release)(\/|-).*/.test(branch)) return MASTER_BRANCH;
-	return DEVELOP_BRANCH;
 };
 
 const __detectRepoServer = async (repoUrl: string) => {
@@ -73,6 +70,47 @@ export const getRepoServer = async () => {
 		configStore.set(repoServerConfigKey, repoServer);
 	}
 	return repoServer as GitServer;
+};
+
+export const getGlobalMainBranch = (branch: MainBranches) => {
+	return configStore.get(`git.branch.default.${branch}`) || MAIN_DEFAULT_BRANCHES[branch];
+};
+
+const __getRepoMainBranches = () => {
+	const repoUrl = getRepoRemoteUrl();
+	const repoBranchesConfigKey = `git.branch.repo.${repoUrl.replace(/\.+/g, '\\.')}`;
+	return configStore.get(repoBranchesConfigKey);
+};
+
+export const getRepoMainBranch = (branch?: MainBranches) => {
+	const repoMainBranches = __getRepoMainBranches();
+	if (!repoMainBranches) return null;
+	return repoMainBranches[branch];
+};
+
+const __getDefaultSourceBranchFromBranch = (branch: string) => {
+	if (branch === MAIN_DEFAULT_BRANCHES.develop || /^(hotfix|release)(\/|-).*/.test(branch))
+		return MAIN_DEFAULT_BRANCHES.master;
+	return MAIN_DEFAULT_BRANCHES.develop;
+};
+const __getGlobalSourceBranchFromBranch = (branch: string) => {
+	if (branch === getGlobalMainBranch('develop') || /^(hotfix|release)(\/|-).*/.test(branch))
+		return getGlobalMainBranch('master');
+	return getGlobalMainBranch('develop');
+};
+
+export const getRepoSourceBranchFromBranch = async (branch: string) => {
+	const repoBranches = __getRepoMainBranches();
+
+	const defaultSourceBranch = __getDefaultSourceBranchFromBranch(branch);
+	if (repoBranches && !!repoBranches[defaultSourceBranch]) {
+		return repoBranches[defaultSourceBranch];
+	}
+	return __getGlobalSourceBranchFromBranch(branch);
+};
+
+export const getSourceBranchFromBranch = (branch: string) => {
+	return getRepoSourceBranchFromBranch(branch);
 };
 
 const __gitProviders = {
